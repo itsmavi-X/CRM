@@ -253,7 +253,46 @@ export default function AuthPage() {
 
               <Form {...registerForm}>
                 <form
-                  onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    
+                    const name = registerForm.getValues("name");
+                    const username = registerForm.getValues("username");
+                    const password = registerForm.getValues("password");
+                    const terms = registerForm.getValues("terms");
+                    
+                    let hasErrors = false;
+                    
+                    // Manual validation
+                    if (!name || name.trim() === '') {
+                      registerForm.setError("name", { message: "Full name is required" });
+                      hasErrors = true;
+                    }
+                    
+                    if (!username || username.trim() === '') {
+                      registerForm.setError("username", { message: "Username is required" });
+                      hasErrors = true;
+                    }
+                    
+                    if (!password || password.length < 6) {
+                      registerForm.setError("password", { message: "Password must be at least 6 characters" });
+                      hasErrors = true;
+                    }
+                    
+                    if (!terms) {
+                      registerForm.setError("terms", { message: "You must accept terms" });
+                      hasErrors = true;
+                    }
+                    
+                    if (!hasErrors) {
+                      onRegisterSubmit({
+                        name,
+                        username,
+                        password,
+                        terms
+                      });
+                    }
+                  }}
                   className="space-y-6"
                 >
                   <div className="space-y-2">
@@ -274,88 +313,85 @@ export default function AuthPage() {
                     )}
                   </div>
 
-                  <FormField
-                    control={registerForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Choose a username"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <label htmlFor="username" className="text-sm font-medium">
+                      Username
+                    </label>
+                    <Input
+                      id="username"
+                      placeholder="Choose a username"
+                      value={registerForm.watch("username") || ""}
+                      onChange={(e) => registerForm.setValue("username", e.target.value)}
+                      type="text"
+                      autoComplete="username"
+                      className="w-full"
+                    />
+                    {registerForm.formState.errors.username && (
+                      <p className="text-sm text-red-500">Username is required</p>
                     )}
-                  />
+                  </div>
 
-                  <FormField
-                    control={registerForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Create a password"
-                              {...field}
-                            />
-                            <button
-                              type="button"
-                              className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4 text-gray-400" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-gray-400" />
-                              )}
-                            </button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
+                        value={registerForm.watch("password") || ""}
+                        onChange={(e) => registerForm.setValue("password", e.target.value)}
+                        autoComplete="new-password"
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                    {registerForm.formState.errors.password && (
+                      <p className="text-sm text-red-500">Password must be at least 6 characters</p>
                     )}
-                  />
+                  </div>
 
 
 
-                  <FormField
-                    control={registerForm.control}
-                    name="terms"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="text-sm">
-                            I agree to the{" "}
-                            <a
-                              href="#"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Terms of Service
-                            </a>{" "}
-                            and{" "}
-                            <a
-                              href="#"
-                              className="text-blue-600 hover:underline"
-                            >
-                              Privacy Policy
-                            </a>
-                          </FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex flex-row items-start space-x-3 space-y-0">
+                    <Checkbox
+                      id="terms"
+                      checked={registerForm.watch("terms") || false}
+                      onCheckedChange={(checked) => registerForm.setValue("terms", checked === true)}
+                    />
+                    <div className="space-y-1 leading-none">
+                      <label htmlFor="terms" className="text-sm font-medium">
+                        I agree to the{" "}
+                        <a
+                          href="#"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="#"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Privacy Policy
+                        </a>
+                      </label>
+                    </div>
+                  </div>
+                  {registerForm.formState.errors.terms && (
+                    <p className="text-sm text-red-500 mt-1">You must accept the terms and conditions</p>
+                  )}
 
                   <Button
                     type="submit"
