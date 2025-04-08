@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, useLocation } from "wouter";
+import { Redirect } from "wouter";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -43,12 +43,6 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { user, loginMutation, registerMutation } = useAuth();
 
-  // If user is already logged in, redirect to home
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
-  // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -66,7 +60,6 @@ export default function AuthPage() {
       name: "",
       terms: false,
     },
-    mode: "onSubmit", // Only validate on submit
   });
   
   // Reset form errors when switching between login and register
@@ -89,15 +82,13 @@ export default function AuthPage() {
     console.log("Registration form values:", values);
     const { terms, ...userData } = values;
     console.log("Data being sent to server:", userData);
-    
-    // Add extra validation to ensure name is present
-    if (!userData.name || userData.name.trim() === '') {
-      console.error("Name is required but was empty");
-      return;
-    }
-    
     registerMutation.mutate(userData);
   };
+
+  // If user is already logged in, redirect to home
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -361,8 +352,6 @@ export default function AuthPage() {
                       <p className="text-sm text-red-500">Password must be at least 6 characters</p>
                     )}
                   </div>
-
-
 
                   <div className="flex flex-row items-start space-x-3 space-y-0">
                     <Checkbox
