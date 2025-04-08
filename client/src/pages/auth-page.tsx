@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,8 +66,17 @@ export default function AuthPage() {
       name: "",
       terms: false,
     },
-    mode: "onChange", // This will validate fields as user types
+    mode: "onSubmit", // Only validate on submit
   });
+  
+  // Reset form errors when switching between login and register
+  useEffect(() => {
+    if (!isLogin) {
+      registerForm.clearErrors();
+    } else {
+      loginForm.clearErrors();
+    }
+  }, [isLogin, registerForm, loginForm]);
 
   const onLoginSubmit = (values: LoginFormValues) => {
     loginMutation.mutate({
@@ -80,6 +89,13 @@ export default function AuthPage() {
     console.log("Registration form values:", values);
     const { terms, ...userData } = values;
     console.log("Data being sent to server:", userData);
+    
+    // Add extra validation to ensure name is present
+    if (!userData.name || userData.name.trim() === '') {
+      console.error("Name is required but was empty");
+      return;
+    }
+    
     registerMutation.mutate(userData);
   };
 
@@ -240,22 +256,23 @@ export default function AuthPage() {
                   onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
                   className="space-y-6"
                 >
-                  <FormField
-                    control={registerForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your full name"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium">
+                      Full Name
+                    </label>
+                    <Input
+                      id="name"
+                      placeholder="Enter your full name"
+                      value={registerForm.watch("name") || ""}
+                      onChange={(e) => registerForm.setValue("name", e.target.value)}
+                      type="text"
+                      autoComplete="name"
+                      className="w-full"
+                    />
+                    {registerForm.formState.errors.name && (
+                      <p className="text-sm text-red-500">Full name is required</p>
                     )}
-                  />
+                  </div>
 
                   <FormField
                     control={registerForm.control}
