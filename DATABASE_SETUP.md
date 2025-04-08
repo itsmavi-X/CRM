@@ -1,94 +1,167 @@
-# Database Setup Guide for CRM System
+# MySQL Database Setup Guide for CRM System
 
-This guide will help you set up PostgreSQL for your CRM System project.
+This guide will help you set up MySQL for your CRM System project.
 
-## Installing PostgreSQL
+## Installing MySQL
 
 ### Windows
-1. Download the PostgreSQL installer from the [official website](https://www.postgresql.org/download/windows/)
-2. Run the installer and follow the installation wizard
-3. Set a password for the default postgres user
-4. Keep the default port (5432)
+1. Download the MySQL Installer from the [official website](https://dev.mysql.com/downloads/installer/)
+2. Run the installer and select "Full" installation or at minimum select:
+   - MySQL Server
+   - MySQL Workbench (recommended for GUI management)
+3. Set a password for the root user
+4. Keep the default port (3306)
 5. Complete the installation
 
 ### macOS
 Option 1: Using Homebrew:
 ```bash
-brew install postgresql
-brew services start postgresql
+brew install mysql
+brew services start mysql
 ```
 
 Option 2: Using the installer:
-1. Download from [PostgreSQL website](https://www.postgresql.org/download/macosx/)
+1. Download from [MySQL website](https://dev.mysql.com/downloads/mysql/)
 2. Follow the installation instructions
 
 ### Linux (Ubuntu/Debian)
 ```bash
 sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
+sudo apt install mysql-server
+sudo systemctl start mysql
+sudo systemctl enable mysql
 ```
 
 ## Creating the Database
 
-### Using psql (Command Line)
+### Using MySQL Command Line
 
 1. Open a terminal or command prompt
-2. Access PostgreSQL:
+2. Access MySQL:
    ```bash
    # Windows
-   psql -U postgres
+   mysql -u root -p
    
    # macOS/Linux
-   sudo -u postgres psql
+   sudo mysql -u root -p
    ```
-3. Enter your password when prompted
+3. Enter your root password when prompted
 4. Create a database for the CRM:
    ```sql
    CREATE DATABASE crmdb;
    ```
 5. Create a user for your application:
    ```sql
-   CREATE USER crmuser WITH ENCRYPTED PASSWORD 'yourpassword';
+   CREATE USER 'crmuser'@'localhost' IDENTIFIED BY 'yourpassword';
    ```
 6. Grant privileges to the user:
    ```sql
-   GRANT ALL PRIVILEGES ON DATABASE crmdb TO crmuser;
+   GRANT ALL PRIVILEGES ON crmdb.* TO 'crmuser'@'localhost';
+   FLUSH PRIVILEGES;
    ```
-7. Connect to your new database:
+7. Exit MySQL:
    ```sql
-   \c crmdb
-   ```
-8. Exit psql:
-   ```sql
-   \q
+   EXIT;
    ```
 
-### Using pgAdmin (GUI)
+### Using MySQL Workbench (GUI)
 
-1. Install pgAdmin from [pgAdmin website](https://www.pgadmin.org/download/)
-2. Open pgAdmin and connect to your PostgreSQL server
-3. Right-click on "Databases" and select "Create" > "Database"
-4. Enter "crmdb" as the database name and save
-5. Create a new user by navigating to "Login/Group Roles"
-6. Right-click and select "Create" > "Login/Group Role"
-7. Enter user details and set permissions
+1. Open MySQL Workbench and connect to your MySQL server
+2. In the Navigator panel, right-click on the empty area under "SCHEMAS" and select "Create Schema..."
+3. Enter "crmdb" as the schema name and click Apply
+4. Go to "Administration" > "Users and Privileges"
+5. Click "Add Account", enter details for a new user (e.g., crmuser)
+6. Set the password for the user
+7. Go to the "Schema Privileges" tab, click "Add Entry"
+8. Select the "crmdb" schema, choose "ALL" for privileges, and click Apply
+
+## Modifying Project Code to Use MySQL
+
+To use MySQL instead of PostgreSQL in your project, you'll need to make a few changes:
+
+### 1. Update Database Connection
+
+Update the `db.ts` file with MySQL connection:
+
+```typescript
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import * as schema from "@shared/schema";
+
+// Create the connection
+const connection = await mysql.createConnection({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "crmuser",
+  password: process.env.DB_PASSWORD || "yourpassword",
+  database: process.env.DB_DATABASE || "crmdb"
+});
+
+export const db = drizzle(connection, { schema });
+```
+
+### 2. Update Schema Types
+
+In `shared/schema.ts`, update the imports and table definitions:
+
+```typescript
+import { mysqlTable, varchar, int, boolean, timestamp } from "drizzle-orm/mysql-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Then replace pgTable with mysqlTable in your table definitions
+// For example:
+export const users = mysqlTable("users", {
+  // ... your columns ...
+});
+```
+
+### 3. Update Session Store
+
+In `server/auth.ts`, update the session store:
+
+```typescript
+import session from "express-session";
+import MySQLStore from "express-mysql-session";
+
+// Then in setupAuth function:
+const MySQLStoreSession = MySQLStore(session);
+const sessionStore = new MySQLStoreSession({
+  host: process.env.DB_HOST || "localhost",
+  port: 3306,
+  user: process.env.DB_USER || "crmuser",
+  password: process.env.DB_PASSWORD || "yourpassword",
+  database: process.env.DB_DATABASE || "crmdb"
+});
+
+const sessionSettings = {
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore
+};
+```
 
 ## Configuring Environment Variables
 
 1. Open your project's `.env` file
-2. Update the DATABASE_URL with your PostgreSQL connection string:
+2. Update with your MySQL connection details:
 
 ```
-DATABASE_URL=postgresql://username:password@localhost:5432/crmdb
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=crmuser
+DB_PASSWORD=yourpassword
+DB_DATABASE=crmdb
+SESSION_SECRET=yoursecretkey
 ```
 
-Replace:
-- `username` with your PostgreSQL username (e.g., crmuser)
-- `password` with your PostgreSQL user password
-- Keep `localhost:5432` unless you changed the default port
-- `crmdb` with your database name if different
+## Installing Required Packages
+
+You'll need to install MySQL-specific packages:
+
+```bash
+npm install mysql2 drizzle-orm-mysql express-mysql-session
+```
 
 ## Running Database Migrations
 
@@ -114,27 +187,28 @@ To verify that your database is set up correctly:
 
 3. Check if the user was added to the database:
    ```sql
-   -- In psql
+   -- In MySQL
    SELECT * FROM users;
    ```
 
 ## Troubleshooting Common Issues
 
 ### Connection Refused
-- Check if PostgreSQL service is running
-- Verify the port in the connection string (default is 5432)
+- Check if MySQL service is running
+- Verify the port in the connection string (default is 3306)
 - Ensure your firewall isn't blocking the connection
 
 ### Authentication Failed
-- Double-check username and password in the connection string
+- Double-check username and password in the environment variables
 - Verify that the user has appropriate permissions
+- If using a newer MySQL version, you might need to adjust the authentication method
 
 ### Database Does Not Exist
 - Confirm you created the database with the correct name
 - Check for typos in the connection string
 
 ### Schema Push Fails
-- Check if Drizzle is configured correctly
+- Check if Drizzle is configured correctly for MySQL
 - Ensure the database user has permission to create tables
 - Review any error messages for specific issues
 
@@ -142,14 +216,14 @@ To verify that your database is set up correctly:
 
 ### Creating a Backup
 ```bash
-pg_dump -U postgres -d crmdb > crmdb_backup.sql
+mysqldump -u root -p crmdb > crmdb_backup.sql
 ```
 
 ### Restoring from Backup
 ```bash
-psql -U postgres -d crmdb < crmdb_backup.sql
+mysql -u root -p crmdb < crmdb_backup.sql
 ```
 
 ---
 
-If you encounter any problems not covered in this guide, refer to the [PostgreSQL documentation](https://www.postgresql.org/docs/) or seek assistance from your instructor.
+If you encounter any problems not covered in this guide, refer to the [MySQL documentation](https://dev.mysql.com/doc/) or seek assistance from your instructor.

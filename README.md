@@ -26,7 +26,7 @@ This CRM system provides a comprehensive solution for managing customer relation
 
 ### Backend
 - Express.js
-- PostgreSQL database
+- MySQL database
 - Drizzle ORM
 - Passport.js for authentication
 - Express Session for session management
@@ -56,7 +56,7 @@ This CRM system provides a comprehensive solution for managing customer relation
 
 ### Prerequisites
 - Node.js (v18 or newer)
-- PostgreSQL database
+- MySQL database
 
 ### Installation Steps
 
@@ -69,12 +69,17 @@ This CRM system provides a comprehensive solution for managing customer relation
 2. Install dependencies:
    ```bash
    npm install
+   npm install mysql2 drizzle-orm-mysql express-mysql-session
    ```
 
 3. Set up environment variables:
    Create a `.env` file in the root directory with the following variables:
    ```
-   DATABASE_URL=postgresql://username:password@localhost:5432/crmdb
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=crmuser
+   DB_PASSWORD=yourpassword
+   DB_DATABASE=crmdb
    SESSION_SECRET=yoursecretkey
    ```
 
@@ -112,7 +117,7 @@ The application can be deployed to various platforms:
 
 1. **Vercel/Netlify**: For frontend deployment
 2. **Heroku/Railway**: For backend services
-3. **Neon/Supabase**: For PostgreSQL database
+3. **PlanetScale/AWS RDS**: For MySQL database
 
 ## Future Enhancements
 
