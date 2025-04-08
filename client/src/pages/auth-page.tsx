@@ -29,18 +29,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 // Registration form schema
 const registerSchema = insertUserSchema.extend({
-  confirmPassword: z.string().min(1, "Confirm password is required"),
   terms: z.boolean().refine(val => val === true, {
     message: "You must accept the terms and conditions"
   }),
-}).superRefine((data, ctx) => {
-  if (data.confirmPassword !== data.password) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Passwords do not match",
-      path: ["confirmPassword"],
-    });
-  }
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -48,8 +39,6 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
 
@@ -73,7 +62,6 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
-      confirmPassword: "",
       name: "",
       terms: false,
     },
@@ -88,12 +76,7 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (values: RegisterFormValues) => {
-    if (values.password !== values.confirmPassword) {
-      setPasswordsMatch(false);
-      return;
-    }
-    setPasswordsMatch(true);
-    const { confirmPassword, terms, ...userData } = values;
+    const { terms, ...userData } = values;
     registerMutation.mutate(userData);
   };
 
@@ -300,14 +283,6 @@ export default function AuthPage() {
                               type={showPassword ? "text" : "password"}
                               placeholder="Create a password"
                               {...field}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                // Check if passwords match with current confirm password
-                                const confirmPassword = registerForm.getValues("confirmPassword");
-                                if (confirmPassword) {
-                                  setPasswordsMatch(e.target.value === confirmPassword);
-                                }
-                              }}
                             />
                             <button
                               type="button"
@@ -327,49 +302,7 @@ export default function AuthPage() {
                     )}
                   />
 
-                  <FormField
-                    control={registerForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type={showConfirmPassword ? "text" : "password"}
-                              placeholder="Confirm your password"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                // Check if passwords match
-                                const password = registerForm.getValues("password");
-                                setPasswordsMatch(e.target.value === password);
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                              onClick={() =>
-                                setShowConfirmPassword(!showConfirmPassword)
-                              }
-                            >
-                              {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4 text-gray-400" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-gray-400" />
-                              )}
-                            </button>
-                          </div>
-                        </FormControl>
-                        {!passwordsMatch && field.value && (
-                          <p className="text-sm font-medium text-red-500 mt-1">
-                            Passwords do not match
-                          </p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
 
                   <FormField
                     control={registerForm.control}
@@ -407,7 +340,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={registerMutation.isPending || (registerForm.getValues("confirmPassword") && !passwordsMatch)}
+                    disabled={registerMutation.isPending}
                   >
                     {registerMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
