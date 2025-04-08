@@ -1,8 +1,16 @@
 import { users, customers, type User, type InsertUser, type Customer, type InsertCustomer } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import pkg from 'pg';
+const { Pool } = pkg;
 
-const MemoryStore = createMemoryStore(session);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -15,83 +23,76 @@ export interface IStorage {
   updateCustomer(id: number, customer: InsertCustomer): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<boolean>;
   
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private customers: Map<number, Customer>;
-  private userIdCounter: number;
-  private customerIdCounter: number;
-  sessionStore: session.SessionStore;
+export class DatabaseStorage implements IStorage {
+  sessionStore: any;
 
   constructor() {
-    this.users = new Map();
-    this.customers = new Map();
-    this.userIdCounter = 1;
-    this.customerIdCounter = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 1 day
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
     });
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Customer methods
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
-    const id = this.customerIdCounter++;
-    const createdAt = new Date();
-    const customer: Customer = { ...insertCustomer, id, createdAt };
-    this.customers.set(id, customer);
+    const [customer] = await db
+      .insert(customers)
+      .values({
+        ...insertCustomer,
+        createdAt: new Date(),
+      })
+      .returning();
     return customer;
   }
 
   async getAllCustomers(): Promise<Customer[]> {
-    return Array.from(this.customers.values());
+    return await db.select().from(customers);
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    return this.customers.get(id);
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer || undefined;
   }
 
   async updateCustomer(id: number, insertCustomer: InsertCustomer): Promise<Customer | undefined> {
-    const existingCustomer = this.customers.get(id);
-    if (!existingCustomer) {
-      return undefined;
-    }
-
-    const updatedCustomer: Customer = {
-      ...existingCustomer,
-      ...insertCustomer,
-    };
-    
-    this.customers.set(id, updatedCustomer);
-    return updatedCustomer;
+    const [updatedCustomer] = await db
+      .update(customers)
+      .set(insertCustomer)
+      .where(eq(customers.id, id))
+      .returning();
+    return updatedCustomer || undefined;
   }
 
   async deleteCustomer(id: number): Promise<boolean> {
-    if (!this.customers.has(id)) {
-      return false;
-    }
-    this.customers.delete(id);
-    return true;
+    const result = await db
+      .delete(customers)
+      .where(eq(customers.id, id))
+      .returning({ id: customers.id });
+    
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
