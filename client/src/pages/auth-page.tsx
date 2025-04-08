@@ -4,7 +4,6 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,7 +27,10 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 // Registration form schema
-const registerSchema = insertUserSchema.extend({
+const registerSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   terms: z.boolean().refine(val => val === true, {
     message: "You must accept the terms and conditions"
   }),
