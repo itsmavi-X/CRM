@@ -30,12 +30,17 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 // Registration form schema
 const registerSchema = insertUserSchema.extend({
   confirmPassword: z.string().min(1, "Confirm password is required"),
-  terms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms and conditions" }),
+  terms: z.boolean().refine(val => val === true, {
+    message: "You must accept the terms and conditions"
   }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
+}).superRefine((data, ctx) => {
+  if (data.confirmPassword !== data.password) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    });
+  }
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -71,6 +76,7 @@ export default function AuthPage() {
       name: "",
       terms: false,
     },
+    mode: "onChange", // This will validate fields as user types
   });
 
   const onLoginSubmit = (values: LoginFormValues) => {
