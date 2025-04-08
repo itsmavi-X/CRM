@@ -49,6 +49,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
 
@@ -87,6 +88,11 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (values: RegisterFormValues) => {
+    if (values.password !== values.confirmPassword) {
+      setPasswordsMatch(false);
+      return;
+    }
+    setPasswordsMatch(true);
     const { confirmPassword, terms, ...userData } = values;
     registerMutation.mutate(userData);
   };
@@ -294,6 +300,14 @@ export default function AuthPage() {
                               type={showPassword ? "text" : "password"}
                               placeholder="Create a password"
                               {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Check if passwords match with current confirm password
+                                const confirmPassword = registerForm.getValues("confirmPassword");
+                                if (confirmPassword) {
+                                  setPasswordsMatch(e.target.value === confirmPassword);
+                                }
+                              }}
                             />
                             <button
                               type="button"
@@ -325,6 +339,12 @@ export default function AuthPage() {
                               type={showConfirmPassword ? "text" : "password"}
                               placeholder="Confirm your password"
                               {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Check if passwords match
+                                const password = registerForm.getValues("password");
+                                setPasswordsMatch(e.target.value === password);
+                              }}
                             />
                             <button
                               type="button"
@@ -341,6 +361,11 @@ export default function AuthPage() {
                             </button>
                           </div>
                         </FormControl>
+                        {!passwordsMatch && field.value && (
+                          <p className="text-sm font-medium text-red-500 mt-1">
+                            Passwords do not match
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -382,7 +407,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={registerMutation.isPending}
+                    disabled={registerMutation.isPending || (registerForm.getValues("confirmPassword") && !passwordsMatch)}
                   >
                     {registerMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
