@@ -40,7 +40,6 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const { user, loginMutation, registerMutation } = useAuth();
-  const [, navigate] = useLocation();
 
   // If user is already logged in, redirect to home
   if (user) {
@@ -76,7 +75,9 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (values: RegisterFormValues) => {
+    console.log("Registration form values:", values);
     const { terms, ...userData } = values;
+    console.log("Data being sent to server:", userData);
     registerMutation.mutate(userData);
   };
 
