@@ -24,13 +24,11 @@ export default function Dashboard() {
     queryKey: ["/api/customers"],
   });
 
-  // Calculate stats
+  // ✅ Fixed enum casing
   const stats = {
     totalCustomers: customers?.length || 0,
-    activeCustomers: customers?.filter((c) => c.status === "active").length || 0,
-    inactiveCustomers:
-      customers?.filter((c) => c.status === "inactive").length || 0,
-    // For new customers, we could add a date filter here
+    activeCustomers: customers?.filter((c) => c.status === "Active").length || 0,
+    inactiveCustomers: customers?.filter((c) => c.status === "Inactive").length || 0,
     newCustomers: customers?.length ? Math.floor(customers.length * 0.1) : 0,
   };
 
@@ -57,9 +55,7 @@ export default function Dashboard() {
       {/* Customers Table Section */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
         <div className="p-4 bg-gray-50 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Customers
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800">Customers</h2>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="relative w-full md:w-auto">
               <Input

@@ -4,7 +4,10 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { DatabaseStorage } from "./storage";
+
+const storage = new DatabaseStorage();
+
 import { User as SelectUser } from "@shared/schema";
 
 declare global {
@@ -59,7 +62,11 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  // ✅ This is the correct fix — make sure the user has an ID before calling req.login
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
@@ -69,6 +76,7 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // ✅ FIXED: Register route
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -76,14 +84,22 @@ export function setupAuth(app: Express) {
         return res.status(400).send("Username already exists");
       }
 
-      const user = await storage.createUser({
+      // Step 1: Create user
+      await storage.createUser({
         ...req.body,
         password: await hashPassword(req.body.password),
       });
 
-      req.login(user, (err) => {
+      // Step 2: Fetch the full user with ID
+      const createdUser = await storage.getUserByUsername(req.body.username);
+      if (!createdUser) {
+        return res.status(500).send("User creation failed");
+      }
+
+      // Step 3: Login user with full object (with id)
+      req.login(createdUser, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        res.status(201).json(createdUser);
       });
     } catch (error) {
       next(error);

@@ -1,12 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pkg from 'pg';
-const { Pool } = pkg;
-import * as schema from "@shared/schema";
+import 'dotenv/config'; // ✅ This line loads .env automatically
+import { drizzle } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
+import * as schema from '@shared/schema';
 
-// Create a PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  user: process.env.DB_USER || 'crmuser',
+  password: process.env.DB_PASSWORD || '@kuki3001',
+  database: process.env.DB_DATABASE || 'crmdb',
 });
 
-// Create a drizzle instance using our schema
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, {
+  schema,
+  mode: 'default', // ✅ Required by drizzle when using schema
+});

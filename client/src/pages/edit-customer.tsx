@@ -33,16 +33,16 @@ export default function EditCustomer() {
   const updateCustomerMutation = useMutation({
     mutationFn: async (customerData: InsertCustomer) => {
       const res = await apiRequest(
-        "PUT", 
-        `/api/customers/${customerId}`, 
+        "PUT",
+        `/api/customers/${customerId}`,
         customerData
       );
       return res.json();
     },
     onSuccess: (updatedCustomer: Customer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/customers/${customerId}`] 
+      queryClient.invalidateQueries({
+        queryKey: [`/api/customers/${customerId}`],
       });
       toast({
         title: "Customer updated",
@@ -60,6 +60,11 @@ export default function EditCustomer() {
   });
 
   const handleSubmit = (data: InsertCustomer) => {
+    // ✅ Fix enum casing before submitting
+    if (data.status) {
+      data.status =data.status.toLowerCase() === "active" ? "Active" : "Inactive";
+    }
+
     updateCustomerMutation.mutate(data);
   };
 
@@ -78,7 +83,7 @@ export default function EditCustomer() {
   return (
     <div className="min-h-screen flex">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      
+
       {/* Mobile header */}
       <div className="md:hidden bg-neutral-dark text-white p-4 fixed top-0 left-0 right-0 flex justify-between items-center z-10">
         <h1 className="text-xl font-bold tracking-tight flex items-center">
@@ -104,15 +109,13 @@ export default function EditCustomer() {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : customer ? (
-            <CustomerForm 
+            <CustomerForm
               initialData={customer}
-              onSubmit={handleSubmit} 
-              isSubmitting={updateCustomerMutation.isPending} 
+              onSubmit={handleSubmit}
+              isSubmitting={updateCustomerMutation.isPending}
             />
           ) : (
-            <div className="text-center text-red-500">
-              Customer not found
-            </div>
+            <div className="text-center text-red-500">Customer not found</div>
           )}
         </main>
       </div>

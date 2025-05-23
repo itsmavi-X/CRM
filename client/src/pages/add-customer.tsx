@@ -39,13 +39,18 @@ export default function AddCustomer() {
   });
 
   const handleSubmit = (data: InsertCustomer) => {
+    // 🔥 FIX: Capitalize the status to match enum
+    if (data.status) {
+      data.status = data.status.toLowerCase() === "active" ? "Active" : "Inactive";
+    }
+
     addCustomerMutation.mutate(data);
   };
 
   return (
     <div className="min-h-screen flex">
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      
+
       {/* Mobile header */}
       <div className="md:hidden bg-neutral-dark text-white p-4 fixed top-0 left-0 right-0 flex justify-between items-center z-10">
         <h1 className="text-xl font-bold tracking-tight flex items-center">

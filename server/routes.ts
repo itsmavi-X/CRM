@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { DatabaseStorage } from "./storage";
+
+const storage = new DatabaseStorage();
+
 import { insertCustomerSchema } from "@shared/schema";
 
 // Middleware to check if user is authenticated

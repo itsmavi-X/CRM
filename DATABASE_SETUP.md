@@ -11,18 +11,6 @@ This guide provides step-by-step instructions for setting up the MySQL database 
 4. Set a root password when prompted
 5. Complete the installation
 
-### macOS
-1. Download MySQL from the [official MySQL website](https://dev.mysql.com/downloads/mysql/)
-2. Install the downloaded package
-3. Follow the setup wizard and set a root password
-4. MySQL will be installed and started automatically
-
-### Linux (Ubuntu/Debian)
-```bash
-sudo apt update
-sudo apt install mysql-server
-sudo mysql_secure_installation
-```
 
 ## 2. Create the Database and User
 
